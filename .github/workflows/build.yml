@@ -10,31 +10,32 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4 # Обновлено до v4
+      uses: actions/checkout@v4
 
     - name: Set up Python
-      uses: actions/setup-python@v5 # Обновлено до v5
+      uses: actions/setup-python@v5
       with:
-        python-version: '3.8.10'
+        python-version: '3.8.10' # Оставляем для работы на Windows 7
         cache: 'pip'
 
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install pyinstaller
+        pip install pyinstaller matplotlib networkx # Убеждаемся, что всё установлено
 
     - name: Build EXE
-      # Используем ` вместо ^ для переноса строк в PowerShell
       run: |
         pyinstaller source/main.py `
           --onefile `
           --windowed `
+          --collect-all matplotlib `
+          --collect-all networkx `
           --icon=assets/logguard_icon.ico `
           --name LogGuard_SOC
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v4 # Исправлено: теперь v4
+      uses: actions/upload-artifact@v4
       with:
         name: LogGuard_SOC_EXE
         path: dist/LogGuard_SOC.exe
