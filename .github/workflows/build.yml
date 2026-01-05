@@ -9,15 +9,14 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    # Обновлено с v3 до v4 (более быстрый и современный)
-    - uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4 # Обновлено до v4
 
-    # Обновлено с v4 до v5 (улучшенное кеширование зависимостей)
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v5 # Обновлено до v5
       with:
         python-version: '3.11'
-        cache: 'pip' # Автоматическое кеширование ускорит последующие сборки
+        cache: 'pip'
 
     - name: Install dependencies
       run: |
@@ -26,16 +25,16 @@ jobs:
         pip install pyinstaller
 
     - name: Build EXE
+      # Используем ` вместо ^ для переноса строк в PowerShell
       run: |
-        pyinstaller main.py ^
-          --onefile ^
-          --windowed ^
-          --icon=assets/logguard_icon.ico ^
+        pyinstaller main.py `
+          --onefile `
+          --windowed `
+          --icon=assets/logguard_icon.ico `
           --name LogGuard_SOC
 
-    # ИСПРАВЛЕНО: Обновлено с v3 до v4 (решает вашу основную ошибку)
     - name: Upload artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v4 # Исправлено: теперь v4
       with:
         name: LogGuard_SOC_EXE
         path: dist/LogGuard_SOC.exe
