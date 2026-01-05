@@ -27,7 +27,7 @@ jobs:
     - name: Build EXE
       # Используем ` вместо ^ для переноса строк в PowerShell
       run: |
-        pyinstaller main.py `
+        pyinstaller source/main.py `
           --onefile `
           --windowed `
           --icon=assets/logguard_icon.ico `
