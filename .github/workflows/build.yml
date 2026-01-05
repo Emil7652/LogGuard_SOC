@@ -9,15 +9,19 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - uses: actions/checkout@v3
+    # Обновлено с v3 до v4 (более быстрый и современный)
+    - uses: actions/checkout@v4
 
+    # Обновлено с v4 до v5 (улучшенное кеширование зависимостей)
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.11'
+        cache: 'pip' # Автоматическое кеширование ускорит последующие сборки
 
     - name: Install dependencies
       run: |
+        python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install pyinstaller
 
@@ -29,8 +33,9 @@ jobs:
           --icon=assets/logguard_icon.ico ^
           --name LogGuard_SOC
 
+    # ИСПРАВЛЕНО: Обновлено с v3 до v4 (решает вашу основную ошибку)
     - name: Upload artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: LogGuard_SOC_EXE
         path: dist/LogGuard_SOC.exe
