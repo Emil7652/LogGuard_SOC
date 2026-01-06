@@ -1,11 +1,14 @@
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
+import os
 
+# Импорты твоих модулей
 from log_parser import parse_logs
 from attack_simulator import generate_attacks
 from ai_risk import calculate_ai_risk
 from ueba import calculate_ueba
 from correlation import correlate_events
+from ai_attack_classifier import predict_attack
 from visuals import show_timeline, show_mitre
 
 
@@ -80,19 +83,30 @@ class LogGuardSOC(tk.Tk):
 
     def analyze(self):
         if self.logs is None:
-            messagebox.showerror("Ошибка", "Нет логов")
+            messagebox.showerror("Ошибка", "Нет логов для анализа")
             return
+        try:
+            # AI + UEBA анализ
+            self.logs["ueba_score"] = calculate_ueba(self.logs)
+            self.logs["ai_risk"] = calculate_ai_risk(self.logs)
+            self.logs["predicted_attack"] = predict_attack(self.logs)
+            self.logs = correlate_events(self.logs)
 
-        self.logs["ueba"] = calculate_ueba(self.logs)
-        self.logs["ai_risk"] = calculate_ai_risk(self.logs)
-        self.logs = correlate_events(self.logs)
+            avg_risk = round(self.logs["ai_risk"].mean(), 2)
+            self.card_risk.config(text=str(avg_risk))
 
-        avg = round(self.logs["ai_risk"].mean(), 2)
-        self.card_risk.config(text=str(avg))
-
-        color = "#22c55e" if avg < 0.3 else "#facc15" if avg < 0.6 else "#ef4444"
-        self.card_risk.config(foreground=color)
-        self.card_status.config(text="Анализ завершён", foreground="#22c55e")
+            # Цветовая индикация риска
+            if avg_risk < 0.3:
+                color = "#22c55e"
+            elif avg_risk < 0.6:
+                color = "#facc15"
+            else:
+                color = "#ef4444"
+            self.card_risk.config(foreground=color)
+            self.card_status.config(text="Анализ завершён", foreground="#22c55e")
+        except Exception as e:
+            import traceback
+            messagebox.showerror("Ошибка анализа", f"Произошла ошибка:\n{traceback.format_exc()}")
 
     def timeline(self):
         if self.logs is not None:
