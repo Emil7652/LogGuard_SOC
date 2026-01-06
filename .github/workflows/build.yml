@@ -16,27 +16,30 @@ jobs:
     - name: Setup Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.8.10'
+        python-version: '3.8.10' # Оставляем для Windows 7
         cache: 'pip'
 
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
+        # Устанавливаем именно scikit-learn (sklearn — это имя импорта)
         pip install pyinstaller matplotlib networkx pandas numpy scikit-learn
 
     - name: Install UPX
       run: choco install upx
 
     - name: Build EXE
+      # 1. Заменили --copy-metadata на --collect-all для sklearn, чтобы избежать PackageNotFoundError
+      # 2. Используем ` для PowerShell вместо ^
       run: |
         pyinstaller --noconfirm --onefile --windowed `
         --upx-dir="C:\ProgramData\chocolatey\bin" `
         --collect-all matplotlib `
         --collect-all networkx `
+        --collect-all sklearn `
         --copy-metadata pandas `
         --copy-metadata numpy `
-        --copy-metadata sklearn `
         --icon=assets/logguard_icon.ico `
         --name LogGuard_SOC `
         source/main.py
