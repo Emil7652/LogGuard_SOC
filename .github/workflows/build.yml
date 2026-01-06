@@ -1,6 +1,5 @@
-name: Build LogGuard SOC EXE
+Name: Build LogGuard SOC EXE
 
-# Запуск по пушу в main или вручную
 on:
   push:
     branches: [ "main" ]
@@ -11,35 +10,37 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    # 1️⃣ Проверка репозитория
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    # 2️⃣ Установка Python
     - name: Setup Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.8.10'
+        python-version: '3.8.10' # Критично для работы на Windows 7
+        cache: 'pip'
 
-    # 3️⃣ Установка зависимостей
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install pyinstaller
+        pip install pyinstaller matplotlib networkx pandas numpy scikit-learn
 
-    # 4️⃣ Сборка EXE
-    - name: Build EXE (OneFile)
+    - name: Install UPX
+      run: choco install upx
+
+    - name: Build EXE
+      # Убрали --exclude-module tkinter, так как он вам нужен
       run: |
-        pyinstaller --noconfirm --onefile --windowed ^
-        --icon=assets/logguard_icon.ico ^
+        pyinstaller --noconfirm --onefile --windowed `
+        --upx-dir="C:\ProgramData\chocolatey\bin" `
+        --collect-all matplotlib `
+        --collect-all networkx `
+        --copy-metadata pandas `
+        --copy-metadata numpy `
+        --copy-metadata sklearn `
+        --icon=assets/logguard_icon.ico `
         source/main.py
 
-    # 5️⃣ Альтернатива: сборка в папку (ускоренный запуск)
-    #- name: Build EXE (Folder)
-    #  run: pyinstaller --noconfirm --windowed --icon=assets/logguard_icon.ico main.py
-
-    # 6️⃣ Загрузка артефакта
     - name: Upload EXE artifact
       uses: actions/upload-artifact@v4
       with:
