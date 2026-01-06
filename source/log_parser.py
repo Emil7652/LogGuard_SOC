@@ -3,18 +3,25 @@ import pandas as pd
 def parse_logs(path):
     df = pd.read_csv(path)
 
-    def col(name_list):
-        for n in name_list:
-            if n in df.columns:
-                return df[n]
-        return ["unknown"] * len(df)
+    mapping = {
+        "timestamp": ["time", "date", "timestamp"],
+        "user": ["user", "username", "account"],
+        "ip": ["ip", "src_ip", "source_ip"],
+        "event": ["event", "action", "message"]
+    }
 
-    result = pd.DataFrame({
-        "time": col(["time", "timestamp", "date"]),
-        "user": col(["user", "username", "account"]),
-        "ip": col(["ip", "src_ip", "source"]),
-        "event": col(["event", "action", "message"])
-    })
+    normalized = {}
 
-    result["technique"] = "Unknown"
-    return result
+    for std, variants in mapping.items():
+        for v in variants:
+            if v in df.columns:
+                normalized[std] = df[v]
+                break
+        else:
+            normalized[std] = "unknown"
+
+    out = pd.DataFrame(normalized)
+    out["attempts"] = 1
+    out["bytes"] = df.get("bytes", 0)
+
+    return out
