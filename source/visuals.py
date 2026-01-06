@@ -1,14 +1,13 @@
 import matplotlib.pyplot as plt
 
 def show_timeline(df):
-    plt.figure(figsize=(10,4))
-    plt.plot(df.index, df["ai_risk"], marker="o")
-    plt.title("Timeline атак")
-    plt.xlabel("Событие")
-    plt.ylabel("AI Risk")
+    plt.style.use("dark_background")
+    plt.plot(df.index, df["ai_risk"], color="#22c55e")
+    plt.title("Attack Timeline")
     plt.show()
 
 def show_mitre(df):
-    df["technique"].value_counts().plot(kind="bar", figsize=(8,5))
+    plt.style.use("dark_background")
+    df["predicted_attack"].value_counts().plot(kind="bar")
     plt.title("MITRE ATT&CK")
     plt.show()
