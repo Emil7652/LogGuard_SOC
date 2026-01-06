@@ -1,33 +1,30 @@
 import pandas as pd
 import random
 from datetime import datetime, timedelta
-from attack_memory import remember
 
 ATTACKS = [
-    ("Phishing", "T1566"),
-    ("Brute Force", "T1110"),
-    ("Privilege Escalation", "T1068"),
-    ("Lateral Movement", "T1021"),
-    ("Persistence", "T1053"),
-    ("Data Exfiltration", "T1041")
+    ("Brute Force", "login_fail"),
+    ("Phishing", "email_click"),
+    ("Malware", "process_exec"),
+    ("Reconnaissance", "port_scan"),
+    ("Data Exfiltration", "file_access"),
+    ("Lateral Movement", "admin_login")
 ]
 
 def generate_attacks():
-    events = []
+    data = []
     base = datetime.now()
 
-    for i in range(random.randint(40, 80)):
-        attack, tech = random.choice(ATTACKS)
-        ip = f"10.0.0.{random.randint(1,50)}"
-
-        events.append({
-            "time": base + timedelta(minutes=i),
-            "user": f"user{random.randint(1,5)}",
-            "ip": ip,
-            "event": attack,
-            "technique": tech
+    for _ in range(random.randint(40, 80)):
+        attack, event = random.choice(ATTACKS)
+        data.append({
+            "timestamp": base + timedelta(seconds=random.randint(1, 300)),
+            "user": random.choice(["admin", "user1", "guest"]),
+            "ip": f"192.168.1.{random.randint(1,255)}",
+            "event": event,
+            "true_attack": attack,
+            "attempts": random.randint(1, 20),
+            "bytes": random.randint(100, 500000)
         })
 
-        remember(ip, True)
-
-    return pd.DataFrame(events)
+    return pd.DataFrame(data)
