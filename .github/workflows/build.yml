@@ -1,4 +1,4 @@
-Name: Build LogGuard SOC EXE
+name: Build LogGuard SOC EXE
 
 on:
   push:
@@ -16,7 +16,7 @@ jobs:
     - name: Setup Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.8.10' # Критично для работы на Windows 7
+        python-version: '3.8.10'
         cache: 'pip'
 
     - name: Install dependencies
@@ -29,7 +29,6 @@ jobs:
       run: choco install upx
 
     - name: Build EXE
-      # Убрали --exclude-module tkinter, так как он вам нужен
       run: |
         pyinstaller --noconfirm --onefile --windowed `
         --upx-dir="C:\ProgramData\chocolatey\bin" `
@@ -39,10 +38,11 @@ jobs:
         --copy-metadata numpy `
         --copy-metadata sklearn `
         --icon=assets/logguard_icon.ico `
+        --name LogGuard_SOC `
         source/main.py
 
     - name: Upload EXE artifact
       uses: actions/upload-artifact@v4
       with:
         name: LogGuard_SOC_EXE
-        path: dist/main.exe
+        path: dist/LogGuard_SOC.exe
