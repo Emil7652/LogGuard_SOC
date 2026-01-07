@@ -1,8 +1,7 @@
-import tkinter as tk
-from tkinter import ttk, filedialog, messagebox
-import os
+import customtkinter as ctk
+from tkinter import filedialog, messagebox
+import pandas as pd
 
-# Импорты твоих модулей
 from log_parser import parse_logs
 from attack_simulator import generate_attacks
 from ai_risk import calculate_ai_risk
@@ -12,101 +11,146 @@ from ai_attack_classifier import predict_attack
 from visuals import show_timeline, show_mitre
 
 
-class LogGuardSOC(tk.Tk):
+ctk.set_appearance_mode("dark")
+ctk.set_default_color_theme("dark-blue")
+
+
+class LogGuardSOC(ctk.CTk):
+
     def __init__(self):
         super().__init__()
 
         self.title("LogGuard SOC AI")
-        self.geometry("1100x700")
-        self.configure(bg="#0f172a")
+        self.geometry("1300x750")
+        self.minsize(1200, 700)
 
         self.logs = None
 
-        style = ttk.Style(self)
-        style.theme_use("clam")
+        self.build_ui()
 
-        style.configure("TButton", font=("Segoe UI", 11), padding=10)
-        style.configure("Card.TFrame", background="#020617")
-        style.configure("Title.TLabel", font=("Segoe UI", 20, "bold"),
-                        background="#0f172a", foreground="white")
-        style.configure("CardTitle.TLabel", font=("Segoe UI", 12, "bold"),
-                        background="#020617", foreground="#e5e7eb")
-        style.configure("Value.TLabel", font=("Segoe UI", 26, "bold"),
-                        background="#020617", foreground="#22c55e")
+    def build_ui(self):
+        # ========== SIDEBAR ==========
+        self.sidebar = ctk.CTkFrame(self, width=240, corner_radius=0)
+        self.sidebar.pack(side="left", fill="y")
 
-        self._build_ui()
+        ctk.CTkLabel(
+            self.sidebar,
+            text="🛡 LogGuard",
+            font=("Segoe UI", 22, "bold")
+        ).pack(pady=(30, 20))
 
-    def _build_ui(self):
-        header = ttk.Frame(self)
-        header.pack(fill="x", padx=20, pady=15)
-        ttk.Label(header, text="🛡 LogGuard SOC AI", style="Title.TLabel").pack(side="left")
+        self.btn_load = ctk.CTkButton(
+            self.sidebar, text="📂 Загрузить логи",
+            command=self.load_logs
+        )
+        self.btn_load.pack(pady=10, padx=20, fill="x")
 
-        main = ttk.Frame(self)
-        main.pack(fill="both", expand=True, padx=20, pady=10)
+        self.btn_sim = ctk.CTkButton(
+            self.sidebar, text="🎯 Симулятор атак",
+            command=self.simulate_attacks
+        )
+        self.btn_sim.pack(pady=10, padx=20, fill="x")
 
-        sidebar = ttk.Frame(main, width=220)
-        sidebar.pack(side="left", fill="y", padx=(0, 20))
+        self.btn_analyze = ctk.CTkButton(
+            self.sidebar, text="🤖 AI + UEBA анализ",
+            command=self.analyze
+        )
+        self.btn_analyze.pack(pady=10, padx=20, fill="x")
 
-        ttk.Button(sidebar, text="📂 Загрузить логи", command=self.load_logs).pack(fill="x", pady=8)
-        ttk.Button(sidebar, text="🎯 Симуляция атак", command=self.simulate_attacks).pack(fill="x", pady=8)
-        ttk.Button(sidebar, text="🤖 AI + UEBA анализ", command=self.analyze).pack(fill="x", pady=8)
-        ttk.Button(sidebar, text="📈 Таймлайн", command=self.timeline).pack(fill="x", pady=8)
-        ttk.Button(sidebar, text="🧬 MITRE ATT&CK", command=self.mitre).pack(fill="x", pady=8)
+        self.btn_timeline = ctk.CTkButton(
+            self.sidebar, text="📈 Таймлайн",
+            command=self.timeline
+        )
+        self.btn_timeline.pack(pady=10, padx=20, fill="x")
 
-        dashboard = ttk.Frame(main)
-        dashboard.pack(fill="both", expand=True)
+        self.btn_mitre = ctk.CTkButton(
+            self.sidebar, text="🧬 MITRE ATT&CK",
+            command=self.mitre
+        )
+        self.btn_mitre.pack(pady=10, padx=20, fill="x")
 
-        self.card_events = self._card(dashboard, "События", "0")
-        self.card_risk = self._card(dashboard, "AI Risk", "0.00")
-        self.card_status = self._card(dashboard, "Статус", "Ожидание")
+        # ========== MAIN AREA ==========
+        self.main = ctk.CTkFrame(self)
+        self.main.pack(fill="both", expand=True, padx=20, pady=20)
 
-    def _card(self, parent, title, value):
-        frame = ttk.Frame(parent, style="Card.TFrame", padding=20)
-        frame.pack(side="left", expand=True, fill="both", padx=10)
+        self.cards = ctk.CTkFrame(self.main, fg_color="transparent")
+        self.cards.pack(fill="x", pady=(0, 20))
 
-        ttk.Label(frame, text=title, style="CardTitle.TLabel").pack(anchor="w")
-        label = ttk.Label(frame, text=value, style="Value.TLabel")
-        label.pack(anchor="w", pady=10)
+        self.card_events = self.card("События", "0")
+        self.card_risk = self.card("AI Risk", "0.00")
+        self.card_status = self.card("Статус", "Ожидание")
+
+        # ========== TABLE ==========
+        self.table_frame = ctk.CTkFrame(self.main)
+        self.table_frame.pack(fill="both", expand=True)
+
+        self.table = ctk.CTkTextbox(
+            self.table_frame,
+            font=("Consolas", 12)
+        )
+        self.table.pack(fill="both", expand=True, padx=10, pady=10)
+
+    def card(self, title, value):
+        card = ctk.CTkFrame(self.cards, corner_radius=20)
+        card.pack(side="left", expand=True, fill="both", padx=10)
+
+        ctk.CTkLabel(
+            card,
+            text=title,
+            font=("Segoe UI", 14)
+        ).pack(pady=(15, 5))
+
+        label = ctk.CTkLabel(
+            card,
+            text=value,
+            font=("Segoe UI", 36, "bold")
+        )
+        label.pack(pady=(0, 15))
+
         return label
 
+    # ========== LOGIC ==========
     def load_logs(self):
         path = filedialog.askopenfilename(filetypes=[("CSV", "*.csv")])
-        if path:
-            self.logs = parse_logs(path)
-            self.card_events.config(text=str(len(self.logs)))
-            self.card_status.config(text="Логи загружены", foreground="#38bdf8")
+        if not path:
+            return
+        self.logs = parse_logs(path)
+        self.update_dashboard("Логи загружены", "#38bdf8")
 
     def simulate_attacks(self):
         self.logs = generate_attacks()
-        self.card_events.config(text=str(len(self.logs)))
-        self.card_status.config(text="Атаки сгенерированы", foreground="#facc15")
+        self.update_dashboard("Атаки сгенерированы", "#facc15")
 
     def analyze(self):
         if self.logs is None:
-            messagebox.showerror("Ошибка", "Нет логов для анализа")
+            messagebox.showerror("Ошибка", "Нет данных для анализа")
             return
-        try:
-            # AI + UEBA анализ
-            self.logs["ueba_score"] = calculate_ueba(self.logs)
-            self.logs["ai_risk"] = calculate_ai_risk(self.logs)
-            self.logs["predicted_attack"] = predict_attack(self.logs)
-            self.logs = correlate_events(self.logs)
 
-            avg_risk = round(self.logs["ai_risk"].mean(), 2)
-            self.card_risk.config(text=str(avg_risk))
+        self.logs["ueba"] = calculate_ueba(self.logs)
+        self.logs["ai_risk"] = calculate_ai_risk(self.logs)
+        self.logs["predicted_attack"] = predict_attack(self.logs)
+        self.logs = correlate_events(self.logs)
 
-            # Цветовая индикация риска
-            if avg_risk < 0.3:
-                color = "#22c55e"
-            elif avg_risk < 0.6:
-                color = "#facc15"
-            else:
-                color = "#ef4444"
-            self.card_risk.config(foreground=color)
-            self.card_status.config(text="Анализ завершён", foreground="#22c55e")
-        except Exception as e:
-            import traceback
-            messagebox.showerror("Ошибка анализа", f"Произошла ошибка:\n{traceback.format_exc()}")
+        avg_risk = round(self.logs["ai_risk"].mean(), 2)
+
+        color = "#22c55e"
+        if avg_risk > 0.6:
+            color = "#ef4444"
+        elif avg_risk > 0.3:
+            color = "#facc15"
+
+        self.card_risk.configure(text=str(avg_risk), text_color=color)
+        self.update_table()
+
+        self.update_dashboard("Анализ завершён", "#22c55e")
+
+    def update_dashboard(self, status, color):
+        self.card_events.configure(text=str(len(self.logs)))
+        self.card_status.configure(text=status, text_color=color)
+
+    def update_table(self):
+        self.table.delete("1.0", "end")
+        self.table.insert("end", self.logs.head(50).to_string(index=False))
 
     def timeline(self):
         if self.logs is not None:
@@ -118,4 +162,5 @@ class LogGuardSOC(tk.Tk):
 
 
 if __name__ == "__main__":
-    LogGuardSOC().mainloop()
+    app = LogGuardSOC()
+    app.mainloop()
