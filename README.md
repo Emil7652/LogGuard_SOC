@@ -89,7 +89,7 @@ LogGuard/
 
 1️⃣ Клонировать репозиторий
 
-git clone https://github.com/Emil752/LogGuard.git
+git clone https://github.com/Emil7652/LogGuard_SOC
 cd LogGuard
 
 2️⃣ Установить зависимости
