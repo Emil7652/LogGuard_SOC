@@ -2,103 +2,177 @@ import customtkinter as ctk
 from tkinter import filedialog, messagebox
 import pandas as pd
 
+from log_parser import parse_logs
 from attack_simulator import generate_attacks
-from mitre_attack import show_mitre_window
-from timeline import show_timeline
+from ai_risk import calculate_ai_risk
+from ueba import calculate_ueba
+from correlation import correlate_events
+from ai_attack_classifier import predict_attack
+from visuals import show_timeline, show_mitre
+
 
 ctk.set_appearance_mode("dark")
-ctk.set_default_color_theme("blue")
+ctk.set_default_color_theme("dark-blue")
 
 
-class LogGuardApp(ctk.CTk):
+class LogGuardSOC(ctk.CTk):
 
     def __init__(self):
         super().__init__()
 
-        self.title("LogGuard SOC")
-        self.geometry("1100x650")
+        self.title("LogGuard SOC AI")
+        self.geometry("1300x750")
+        self.minsize(1200, 700)
 
-        # События (лог + симулятор)
-        self.events = []
+        self.logs = None
 
-        # GUI
-        self.create_sidebar()
-        self.create_main_area()
+        self.build_ui()
 
-    # -------- SIDEBAR --------
-    def create_sidebar(self):
-        self.sidebar = ctk.CTkFrame(self, width=200)
-        self.sidebar.pack(side="left", fill="y", padx=10, pady=10)
+    # ================= UI =================
+    def build_ui(self):
+        # ---------- SIDEBAR ----------
+        self.sidebar = ctk.CTkFrame(self, width=240, corner_radius=0)
+        self.sidebar.pack(side="left", fill="y")
 
         ctk.CTkLabel(
             self.sidebar,
-            text="LogGuard",
-            font=("Segoe UI", 20, "bold")
-        ).pack(pady=20)
+            text="🛡 LogGuard",
+            font=("Segoe UI", 22, "bold")
+        ).pack(pady=(30, 20))
 
-        # Кнопки
-        ctk.CTkButton(self.sidebar, text="Load Logs", command=self.load_logs).pack(pady=8)
-        ctk.CTkButton(self.sidebar, text="Attack Simulator", command=self.run_attack_simulator).pack(pady=8)
-        ctk.CTkButton(self.sidebar, text="MITRE ATT&CK", command=self.open_mitre).pack(pady=8)
-        ctk.CTkButton(self.sidebar, text="Attack Timeline", command=self.open_timeline).pack(pady=8)
+        ctk.CTkButton(
+            self.sidebar, text="📂 Загрузить логи",
+            command=self.load_logs
+        ).pack(pady=10, padx=20, fill="x")
 
-    # -------- MAIN AREA --------
-    def create_main_area(self):
+        ctk.CTkButton(
+            self.sidebar, text="🎯 Симулятор атак",
+            command=self.simulate_attacks
+        ).pack(pady=10, padx=20, fill="x")
+
+        ctk.CTkButton(
+            self.sidebar, text="🤖 AI + UEBA анализ",
+            command=self.analyze
+        ).pack(pady=10, padx=20, fill="x")
+
+        ctk.CTkButton(
+            self.sidebar, text="📈 Таймлайн",
+            command=self.timeline
+        ).pack(pady=10, padx=20, fill="x")
+
+        ctk.CTkButton(
+            self.sidebar, text="🧬 MITRE ATT&CK",
+            command=self.mitre
+        ).pack(pady=10, padx=20, fill="x")
+
+        # ---------- MAIN ----------
         self.main = ctk.CTkFrame(self)
-        self.main.pack(expand=True, fill="both", padx=10, pady=10)
+        self.main.pack(fill="both", expand=True, padx=20, pady=20)
 
-        self.status_label = ctk.CTkLabel(self.main, text="Ready", font=("Segoe UI", 16))
-        self.status_label.pack(pady=40)
+        self.cards = ctk.CTkFrame(self.main, fg_color="transparent")
+        self.cards.pack(fill="x", pady=(0, 20))
 
-    # -------- LOAD LOGS (исправлено) --------
+        self.card_events = self.card("События", "0")
+        self.card_risk = self.card("AI Risk", "0.00")
+        self.card_status = self.card("Статус", "Ожидание")
+
+        self.table_frame = ctk.CTkFrame(self.main)
+        self.table_frame.pack(fill="both", expand=True)
+
+        self.table = ctk.CTkTextbox(
+            self.table_frame,
+            font=("Consolas", 12)
+        )
+        self.table.pack(fill="both", expand=True, padx=10, pady=10)
+
+    def card(self, title, value):
+        card = ctk.CTkFrame(self.cards, corner_radius=20)
+        card.pack(side="left", expand=True, fill="both", padx=10)
+
+        ctk.CTkLabel(
+            card,
+            text=title,
+            font=("Segoe UI", 14)
+        ).pack(pady=(15, 5))
+
+        label = ctk.CTkLabel(
+            card,
+            text=value,
+            font=("Segoe UI", 36, "bold")
+        )
+        label.pack(pady=(0, 15))
+
+        return label
+
+    # ================= LOGIC =================
     def load_logs(self):
-    path = filedialog.askopenfilename(filetypes=[("CSV", "*.csv")])
-    if not path:
-        return
-
-    try:
-        parsed = parse_logs(path)
-
-        # 🔧 ГАРАНТИЯ DataFrame
-        if isinstance(parsed, list):
-            self.logs = pd.DataFrame(parsed)
-        else:
-            self.logs = parsed
-
-        if self.logs.empty:
-            messagebox.showwarning("Внимание", "Логи загружены, но они пустые")
+        path = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")])
+        if not path:
             return
 
-        # Обновляем интерфейс
-        self.update_table()
-        self.update_dashboard("Логи загружены", "#38bdf8")
+        try:
+            parsed = parse_logs(path)
 
-    except Exception as e:
-        messagebox.showerror("Ошибка загрузки логов", str(e))
+            # 🔒 гарантируем DataFrame
+            if isinstance(parsed, list):
+                self.logs = pd.DataFrame(parsed)
+            else:
+                self.logs = parsed
 
-            # Обновление статуса
-            self.status_label.configure(text=f"Loaded {len(self.events)} log events")
+            if self.logs.empty:
+                messagebox.showwarning("Внимание", "Файл загружен, но данных нет")
+                return
 
-            messagebox.showinfo("Logs loaded", f"Successfully loaded {len(self.events)} events")
+            self.update_table()
+            self.update_dashboard("Логи загружены", "#38bdf8")
 
         except Exception as e:
-            messagebox.showerror("Error loading logs", str(e))
+            messagebox.showerror("Ошибка", str(e))
 
-    # -------- ATTACK SIMULATOR --------
-    def run_attack_simulator(self):
-        self.events = generate_attacks()
-        self.status_label.configure(text=f"Generated {len(self.events)} attack events")
+    def simulate_attacks(self):
+        self.logs = generate_attacks()
+        self.update_table()
+        self.update_dashboard("Атаки сгенерированы", "#facc15")
 
-    # -------- MITRE ATT&CK --------
-    def open_mitre(self):
-        show_mitre_window(self, self.events)
+    def analyze(self):
+        if self.logs is None or self.logs.empty:
+            messagebox.showerror("Ошибка", "Нет данных для анализа")
+            return
 
-    # -------- TIMELINE --------
-    def open_timeline(self):
-        show_timeline(self, self.events)
+        self.logs["ueba"] = calculate_ueba(self.logs)
+        self.logs["ai_risk"] = calculate_ai_risk(self.logs)
+        self.logs["predicted_attack"] = predict_attack(self.logs)
+        self.logs = correlate_events(self.logs)
+
+        avg_risk = round(self.logs["ai_risk"].mean(), 2)
+
+        color = "#22c55e"
+        if avg_risk > 0.6:
+            color = "#ef4444"
+        elif avg_risk > 0.3:
+            color = "#facc15"
+
+        self.card_risk.configure(text=str(avg_risk), text_color=color)
+        self.update_table()
+        self.update_dashboard("Анализ завершён", "#22c55e")
+
+    def update_dashboard(self, status, color):
+        self.card_events.configure(text=str(len(self.logs)))
+        self.card_status.configure(text=status, text_color=color)
+
+    def update_table(self):
+        self.table.delete("1.0", "end")
+        self.table.insert("end", self.logs.head(50).to_string(index=False))
+
+    def timeline(self):
+        if self.logs is not None and not self.logs.empty:
+            show_timeline(self.logs)
+
+    def mitre(self):
+        if self.logs is not None and not self.logs.empty:
+            show_mitre(self.logs)
 
 
 if __name__ == "__main__":
-    app = LogGuardApp()
+    app = LogGuardSOC()
     app.mainloop()
-
