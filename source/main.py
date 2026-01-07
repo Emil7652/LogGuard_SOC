@@ -70,19 +70,53 @@ class LogGuardApp(ctk.CTk):
         self.info.pack()
 
     def load_logs(self):
-        file_path = filedialog.askopenfilename(
-            filetypes=[("CSV files", "*.csv"), ("All files", "*.*")]
-        )
-        if not file_path:
-            return
+    file_path = filedialog.askopenfilename(
+        title="Select log file",
+        filetypes=[("CSV files", "*.csv"), ("All files", "*.*")]
+    )
 
-        try:
-            df = pd.read_csv(file_path)
-            self.logs = self.normalize_logs(df)
-            self.events = self.convert_logs_to_events(self.logs)
-            messagebox.showinfo("Success", f"Logs loaded: {len(self.logs)} entries")
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to load logs:\n{e}")
+    if not file_path:
+        return
+
+    try:
+        df = pd.read_csv(file_path)
+
+        events = []
+
+        for _, row in df.iterrows():
+            event = {
+                "timestamp": str(
+                    row["timestamp"] if "timestamp" in df.columns else "unknown"
+                ),
+                "event": str(
+                    row["event"] if "event" in df.columns else "unknown"
+                ),
+                "severity": str(
+                    row["severity"] if "severity" in df.columns else "Medium"
+                ),
+                "mitre": str(
+                    row["mitre"] if "mitre" in df.columns else "N/A"
+                )
+            }
+            events.append(event)
+
+        self.events = events
+
+        if hasattr(self, "status_label"):
+            self.status_label.configure(
+                text=f"Loaded {len(self.events)} log events"
+            )
+
+        messagebox.showinfo(
+            "Logs loaded",
+            f"Successfully loaded {len(self.events)} events"
+        )
+
+    except Exception as e:
+        messagebox.showerror(
+            "Error loading logs",
+            str(e)
+        )
 
     def normalize_logs(self, df):
         # Приводим лог к единому формату: timestamp, event, severity
@@ -108,3 +142,4 @@ class LogGuardApp(ctk.CTk):
 if __name__ == "__main__":
     app = LogGuardApp()
     app.mainloop()
+
