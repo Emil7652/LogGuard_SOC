@@ -18,8 +18,10 @@ class LogGuardApp(ctk.CTk):
         self.title("LogGuard SOC")
         self.geometry("1100x650")
 
+        # События (лог + симулятор)
         self.events = []
 
+        # GUI
         self.create_sidebar()
         self.create_main_area()
 
@@ -34,75 +36,46 @@ class LogGuardApp(ctk.CTk):
             font=("Segoe UI", 20, "bold")
         ).pack(pady=20)
 
-        ctk.CTkButton(
-            self.sidebar,
-            text="Load Logs",
-            command=self.load_logs
-        ).pack(pady=8)
-
-        ctk.CTkButton(
-            self.sidebar,
-            text="Attack Simulator",
-            command=self.run_attack_simulator
-        ).pack(pady=8)
-
-        ctk.CTkButton(
-            self.sidebar,
-            text="MITRE ATT&CK",
-            command=self.open_mitre
-        ).pack(pady=8)
-
-        ctk.CTkButton(
-            self.sidebar,
-            text="Attack Timeline",
-            command=self.open_timeline
-        ).pack(pady=8)
+        # Кнопки
+        ctk.CTkButton(self.sidebar, text="Load Logs", command=self.load_logs).pack(pady=8)
+        ctk.CTkButton(self.sidebar, text="Attack Simulator", command=self.run_attack_simulator).pack(pady=8)
+        ctk.CTkButton(self.sidebar, text="MITRE ATT&CK", command=self.open_mitre).pack(pady=8)
+        ctk.CTkButton(self.sidebar, text="Attack Timeline", command=self.open_timeline).pack(pady=8)
 
     # -------- MAIN AREA --------
     def create_main_area(self):
         self.main = ctk.CTkFrame(self)
         self.main.pack(expand=True, fill="both", padx=10, pady=10)
 
-        self.status_label = ctk.CTkLabel(
-            self.main,
-            text="Ready",
-            font=("Segoe UI", 16)
-        )
+        self.status_label = ctk.CTkLabel(self.main, text="Ready", font=("Segoe UI", 16))
         self.status_label.pack(pady=40)
 
-    # -------- LOAD LOGS (FIXED) --------
+    # -------- LOAD LOGS (исправлено) --------
     def load_logs(self):
-        file_path = filedialog.askopenfilename(
-            title="Select log file",
-            filetypes=[("CSV files", "*.csv"), ("All files", "*.*")]
-        )
-
+        # Открытие диалога выбора файла
+        file_path = filedialog.askopenfilename(title="Select log file", filetypes=[("CSV files", "*.csv")])
         if not file_path:
             return
 
         try:
             df = pd.read_csv(file_path)
 
+            # Приводим данные к формату событий
             events = []
-
             for _, row in df.iterrows():
                 events.append({
-                    "timestamp": str(row["timestamp"]) if "timestamp" in df.columns else "unknown",
-                    "event": str(row["event"]) if "event" in df.columns else "unknown",
-                    "severity": str(row["severity"]) if "severity" in df.columns else "Medium",
-                    "mitre": str(row["mitre"]) if "mitre" in df.columns else "N/A"
+                    "timestamp": str(row.get("timestamp", "unknown")),
+                    "event": str(row.get("event", "unknown")),
+                    "severity": str(row.get("severity", "Medium")),
+                    "mitre": str(row.get("mitre", "N/A"))
                 })
 
             self.events = events
 
-            self.status_label.configure(
-                text=f"Loaded {len(self.events)} log events"
-            )
+            # Обновление статуса
+            self.status_label.configure(text=f"Loaded {len(self.events)} log events")
 
-            messagebox.showinfo(
-                "Logs loaded",
-                f"Successfully loaded {len(self.events)} events"
-            )
+            messagebox.showinfo("Logs loaded", f"Successfully loaded {len(self.events)} events")
 
         except Exception as e:
             messagebox.showerror("Error loading logs", str(e))
@@ -110,11 +83,9 @@ class LogGuardApp(ctk.CTk):
     # -------- ATTACK SIMULATOR --------
     def run_attack_simulator(self):
         self.events = generate_attacks()
-        self.status_label.configure(
-            text=f"Generated {len(self.events)} attack events"
-        )
+        self.status_label.configure(text=f"Generated {len(self.events)} attack events")
 
-    # -------- MITRE --------
+    # -------- MITRE ATT&CK --------
     def open_mitre(self):
         show_mitre_window(self, self.events)
 
