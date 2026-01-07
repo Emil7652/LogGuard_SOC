@@ -52,25 +52,29 @@ class LogGuardApp(ctk.CTk):
 
     # -------- LOAD LOGS (исправлено) --------
     def load_logs(self):
-        # Открытие диалога выбора файла
-        file_path = filedialog.askopenfilename(title="Select log file", filetypes=[("CSV files", "*.csv")])
-        if not file_path:
+    path = filedialog.askopenfilename(filetypes=[("CSV", "*.csv")])
+    if not path:
+        return
+
+    try:
+        parsed = parse_logs(path)
+
+        # 🔧 ГАРАНТИЯ DataFrame
+        if isinstance(parsed, list):
+            self.logs = pd.DataFrame(parsed)
+        else:
+            self.logs = parsed
+
+        if self.logs.empty:
+            messagebox.showwarning("Внимание", "Логи загружены, но они пустые")
             return
 
-        try:
-            df = pd.read_csv(file_path)
+        # Обновляем интерфейс
+        self.update_table()
+        self.update_dashboard("Логи загружены", "#38bdf8")
 
-            # Приводим данные к формату событий
-            events = []
-            for _, row in df.iterrows():
-                events.append({
-                    "timestamp": str(row.get("timestamp", "unknown")),
-                    "event": str(row.get("event", "unknown")),
-                    "severity": str(row.get("severity", "Medium")),
-                    "mitre": str(row.get("mitre", "N/A"))
-                })
-
-            self.events = events
+    except Exception as e:
+        messagebox.showerror("Ошибка загрузки логов", str(e))
 
             # Обновление статуса
             self.status_label.configure(text=f"Loaded {len(self.events)} log events")
@@ -97,3 +101,4 @@ class LogGuardApp(ctk.CTk):
 if __name__ == "__main__":
     app = LogGuardApp()
     app.mainloop()
+
