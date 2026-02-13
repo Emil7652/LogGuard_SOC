@@ -89,16 +89,16 @@ LogGuard/
 
 1️⃣ Клонировать репозиторий
 
-git clone https://github.com/Emil7652/LogGuard_SOC
-cd LogGuard
+`git clone https://github.com/Emil7652/LogGuard_SOC`
+`cd LogGuard`
 
 2️⃣ Установить зависимости
 
-pip install -r requirements.txt
+`pip install -r requirements.txt`
 
 3️⃣ Запустить приложение
 
-python source/main.py
+`python source/main.py`
 
 
 ---
@@ -135,17 +135,17 @@ MITRE ATT&CK
 
 Локально
 
-pyinstaller --windowed --icon=assets/logguard_icon.ico source/main.py
+`pyinstaller --windowed --icon=assets/logguard_icon.ico source/main.py`
 
 Готовый файл появится в папке:
 
-dist/main/main.exe
+`dist/main/main.exe`
 
 Через GitHub Actions
 
 Проект автоматически собирается в .exe
 
-Файл доступен во вкладке Actions → Artifacts
+Файл доступен во вкладке Releases
 
 
 
